@@ -1,0 +1,1 @@
+/home/maki/project/simple-array/array.c
