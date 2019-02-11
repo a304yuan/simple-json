@@ -60,4 +60,24 @@ extern void json_free(json_base * json);
 extern json_base * json_object_get(const json_object * object, const char * key);
 extern json_base * json_array_get(const json_array * array, size_t idx);
 
+// extract value from json base element
+static inline json_object * json_get_object(const json_base * json) {
+    return (json_object*)json;
+}
+static inline json_array * json_get_array(const json_base * json) {
+    return (json_array*)json;
+}
+static inline char * json_get_string(const json_base * json) {
+    return string_get_raw(((json_string*)json)->str);
+}
+static inline long json_get_long(const json_base * json) {
+    return any_get_long(&((json_number*)json)->number);
+}
+static inline double json_get_double(const json_base * json) {
+    return any_get_double(&((json_number*)json)->number);
+}
+static inline bool json_get_bool(const json_base * json) {
+    return ((json_bool*)json)->boolean;
+}
+
 #endif /* end of include guard: SIMPLE_JSON_H */
