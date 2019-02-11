@@ -78,10 +78,10 @@ static json_object * json_parse_object(const char * s, char ** endptr) {
     while (true) {
         char * key_start = strchr(ptr, '"') + 1;
         char * val_start;
-        json_string * key = json_parse_string(key_start, &val_start);
-        any _key;
-        any_set_object(&_key, string_get_raw(key->str), key->str->len);
-        free(key);
+        json_string * key_str = json_parse_string(key_start, &val_start);
+        any key;
+        any_set_object(&key, string_get_raw(key_str->str), key_str->str->len);
+        free(key_str);
 
         while (*val_start == ':' || isspace(*val_start)) {
             val_start++;
@@ -93,9 +93,10 @@ static json_object * json_parse_object(const char * s, char ** endptr) {
             case '"': val = json_parse_string(val_start + 1, &ptr); break;
             case 't':
             case 'f': val = json_parse_bool(val_start + 1, &ptr); break;
+            case 'n': val = NULL; break;
             default: val = json_parse_number(val_start + 1, &ptr); break;
         }
-        hash_table_insert(htable, _key, ANY_POINTER(val));
+        hash_table_insert(htable, key, ANY_POINTER(val));
         // skip spaces
         while (isspace(*ptr)) {
             ptr++;
@@ -132,6 +133,7 @@ static json_array * json_parse_array(const char * s, char ** endptr) {
             case '"': val = json_parse_string(val_start + 1, &ptr); break;
             case 't':
             case 'f': val = json_parse_bool(val_start + 1, &ptr); break;
+            case 'n': val = NULL; break;
             default: val = json_parse_number(val_start + 1, &ptr); break;
         }
         array_append(arr, &val);
@@ -175,7 +177,7 @@ void json_free(json_base * json) {
             hash_node * n = hash_table_iter_next(&iter);
             any_clear_object(&n->key);
             json_base * val = any_get_pointer(&n->value);
-            json_free(val);
+            if (val) json_free(val);
         }
         hash_table_free(((json_object*)json)->table);
     }
@@ -185,7 +187,7 @@ void json_free(json_base * json) {
         while (array_iter_has(&iter)) {
             json_base * val;
             array_iter_next(&iter, &val);
-            json_free(val);
+            if (val) json_free(val);
         }
         array_free(((json_array*)json)->arr);
     }
