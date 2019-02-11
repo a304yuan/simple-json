@@ -1,0 +1,12 @@
+[submodule "simple-any"]
+	path = simple-any
+	url = https://github.com/a304yuan/simple-any
+[submodule "simple-array"]
+	path = simple-array
+	url = https://github.com/a304yuan/simple-array
+[submodule "simple-string"]
+	path = simple-string
+	url = https://github.com/a304yuan/simple-string
+[submodule "simple-hash-table"]
+	path = simple-hash-table
+	url = https://github.com/a304yuan/simple-hash-table

@@ -1,1 +1,0 @@
-/home/maki/project/simple-string/cstring.c

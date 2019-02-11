@@ -5,10 +5,10 @@
 #include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
-#include "cstring.h"
-#include "array.h"
-#include "hash_table.h"
-#include "any.h"
+#include "simple-string/cstring.h"
+#include "simple-array/array.h"
+#include "simple-hash-table/hash_table.h"
+#include "simple-any/any.h"
 
 typedef struct json_base json_base;
 typedef struct json_object json_object;
