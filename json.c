@@ -45,11 +45,11 @@ static json_number * json_parse_number(const char * s, char ** endptr) {
     if (**endptr == '.') {
         double d = strtod(s, endptr);
         any_set(&jnum->number, d);
-        jnum->base.type = TYPE_JSON_LONG;
+        jnum->base.type = TYPE_JSON_DOUBLE;
     }
     else {
         any_set(&jnum->number, l);
-        jnum->base.type = TYPE_JSON_DOUBLE;
+        jnum->base.type = TYPE_JSON_LONG;
     }
     return jnum;
 }
@@ -92,9 +92,9 @@ static json_object * json_parse_object(const char * s, char ** endptr) {
             case '[': val = json_parse_array(val_start + 1, &ptr); break;
             case '"': val = json_parse_string(val_start + 1, &ptr); break;
             case 't':
-            case 'f': val = json_parse_bool(val_start + 1, &ptr); break;
+            case 'f': val = json_parse_bool(val_start, &ptr); break;
             case 'n': val = NULL; break;
-            default: val = json_parse_number(val_start + 1, &ptr); break;
+            default: val = json_parse_number(val_start, &ptr); break;
         }
         hash_table_insert(htable, key, ANY_POINTER(val));
         // skip spaces
@@ -132,9 +132,9 @@ static json_array * json_parse_array(const char * s, char ** endptr) {
             case '[': val = json_parse_array(val_start + 1, &ptr); break;
             case '"': val = json_parse_string(val_start + 1, &ptr); break;
             case 't':
-            case 'f': val = json_parse_bool(val_start + 1, &ptr); break;
+            case 'f': val = json_parse_bool(val_start, &ptr); break;
             case 'n': val = NULL; break;
-            default: val = json_parse_number(val_start + 1, &ptr); break;
+            default: val = json_parse_number(val_start, &ptr); break;
         }
         array_append(arr, &val);
         // skip spaces
@@ -212,4 +212,65 @@ json_base * json_array_get(const json_array * array, size_t idx) {
     json_base * val;
     array_get(array->arr, idx, &val);
     return val;
+}
+
+void json_write(const json_base * json, string * str) {
+    if (json == NULL) {
+        string_append(str, "null");
+    }
+    else if (json->type == TYPE_JSON_STRING) {
+        string_append(str, "\"");
+        string_append(str, string_get_raw(((json_string*)json)->str));
+        string_append(str, "\"");
+    }
+    else if (json->type == TYPE_JSON_BOOL) {
+        if (((json_bool*)json)->boolean) {
+            string_append(str, "true");
+        }
+        else {
+            string_append(str, "false");
+        }
+    }
+    else if (json->type == TYPE_JSON_LONG) {
+        char buf[32] = {'\0'};
+        sprintf(buf, "%ld", any_get_long(&((json_number*)json)->number));
+        string_append(str, buf);
+    }
+    else if (json->type == TYPE_JSON_DOUBLE) {
+        char buf[32] = {'\0'};
+        sprintf(buf, "%f", any_get_double(&((json_number*)json)->number));
+        string_append(str, buf);
+    }
+    else if (json->type == TYPE_JSON_OBJECT) {
+        hash_table_iter iter;
+        hash_table_iter_init(((json_object*)json)->table, &iter);
+        string_append(str, "{");
+        while (hash_table_iter_has(&iter)) {
+            hash_node * n = hash_table_iter_next(&iter);
+            // write key
+            string_append(str, "\"");
+            string_append(str, any_get_ref(&n->key));
+            string_append(str, "\":");
+            // write value
+            json_write(any_get_pointer(&n->value), str);
+            if (hash_table_iter_has(&iter)) {
+                string_append(str, ",");
+            }
+        }
+        string_append(str, "}");
+    }
+    else {
+        array_iter iter;
+        array_iter_init(((json_array*)json)->arr, &iter);
+        string_append(str, "[");
+        while (array_iter_has(&iter)) {
+            json_base * val;
+            array_iter_next(&iter, &val);
+            json_write(val, str);
+            if (array_iter_has(&iter)) {
+                string_append(str, ",");
+            }
+        }
+        string_append(str, "]");
+    }
 }
