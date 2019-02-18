@@ -68,6 +68,11 @@ static json_bool * json_parse_bool(const char * s, char ** endptr) {
     return jbool;
 }
 
+static void * json_parse_null(const char * s, char ** endptr) {
+    *endptr = (char *)s + 3;
+    return NULL;
+}
+
 static json_object * json_parse_object(const char * s, char ** endptr) {
     json_object * jobj = malloc(sizeof(json_object));
     hash_table * htable = hash_table_new(16, bkdr_hash, json_key_cmp);
@@ -93,7 +98,7 @@ static json_object * json_parse_object(const char * s, char ** endptr) {
             case '"': val = json_parse_string(val_start + 1, &ptr); break;
             case 't':
             case 'f': val = json_parse_bool(val_start, &ptr); break;
-            case 'n': val = NULL; break;
+            case 'n': val = json_parse_null(val_start, &ptr); break;
             default: val = json_parse_number(val_start, &ptr); break;
         }
         hash_table_insert(htable, key, ANY_POINTER(val));
@@ -133,7 +138,7 @@ static json_array * json_parse_array(const char * s, char ** endptr) {
             case '"': val = json_parse_string(val_start + 1, &ptr); break;
             case 't':
             case 'f': val = json_parse_bool(val_start, &ptr); break;
-            case 'n': val = NULL; break;
+            case 'n': val = json_parse_null(val_start, &ptr); break;
             default: val = json_parse_number(val_start, &ptr); break;
         }
         array_append(arr, &val);
