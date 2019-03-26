@@ -120,7 +120,7 @@ static json_object * json_parse_object(const char * s, char ** endptr) {
 }
 
 static json_array * json_parse_array(const char * s, char ** endptr) {
-    array * arr = array_new(sizeof(void*), 16);
+    array * arr = array_new(16);
     json_array * jarr = malloc(sizeof(json_array));
     jarr->base.type = TYPE_JSON_ARRAY;
     jarr->arr = arr;
@@ -141,7 +141,7 @@ static json_array * json_parse_array(const char * s, char ** endptr) {
             case 'n': val = json_parse_null(val_start, &ptr); break;
             default: val = json_parse_number(val_start, &ptr); break;
         }
-        array_append(arr, &val);
+        array_append(arr, ANY_POINTER(val));
         // skip spaces
         while (isspace(*ptr)) {
             ptr++;
@@ -190,8 +190,7 @@ void json_free(json_base * json) {
         array_iter iter;
         array_iter_init(((json_array*)json)->arr, &iter);
         while (array_iter_has(&iter)) {
-            json_base * val;
-            array_iter_next(&iter, &val);
+            json_base * val = any_get_pointer(array_iter_next_ref(&iter));
             if (val) json_free(val);
         }
         array_free(((json_array*)json)->arr);
@@ -214,8 +213,7 @@ json_base * json_object_get(const json_object * object, const char * key) {
 }
 
 json_base * json_array_get(const json_array * array, size_t idx) {
-    json_base * val;
-    array_get(array->arr, idx, &val);
+    json_base * val = any_get_pointer(array_get_ref(array->arr, idx));
     return val;
 }
 
@@ -269,8 +267,7 @@ void json_write(const json_base * json, string * str) {
         array_iter_init(((json_array*)json)->arr, &iter);
         string_append(str, "[");
         while (array_iter_has(&iter)) {
-            json_base * val;
-            array_iter_next(&iter, &val);
+            json_base * val = any_get_pointer(array_iter_next_ref(&iter));
             json_write(val, str);
             if (array_iter_has(&iter)) {
                 string_append(str, ",");
