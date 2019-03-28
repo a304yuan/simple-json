@@ -57,7 +57,7 @@ struct json_bool {
 };
 
 extern json_base * json_parse(const char * json_str);
-extern void json_write(const json_base * json, string * str);
+extern void json_write(const json_base * json, string ** str);
 extern void json_free(json_base * json);
 extern json_base * json_object_get(const json_object * object, const char * key);
 extern json_base * json_array_get(const json_array * array, size_t idx);

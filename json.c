@@ -3,10 +3,11 @@
 static json_array * json_parse_array(const char * s, char ** endptr);
 static json_object * json_parse_object(const char * s, char ** endptr);
 
-static size_t bkdr_hash(const void *key, size_t len) {
+static size_t bkdr_hash(const any * key) {
     size_t h = 0;
-    unsigned char * k = (unsigned char*)key;
-    unsigned char * end = k + len;
+    string * str = any_get_pointer(key);
+    unsigned char * k = (unsigned char *)string_get_raw(str);
+    unsigned char * end = k + string_len(str);
 
     while (k < end) {
         h = h * 131 + *k;
@@ -16,8 +17,10 @@ static size_t bkdr_hash(const void *key, size_t len) {
     return h;
 }
 
-static int json_key_cmp(const void * a, const void * b) {
-    return strcmp(a, b);
+static int json_key_cmp(const any * a, const any * b) {
+    string * str1 = any_get_pointer(a);
+    string * str2 = any_get_pointer(b);
+    return strcmp(string_get_raw(str1), string_get_raw(str2));
 }
 
 static json_string * json_parse_string(const char * s, char ** endptr) {
@@ -84,8 +87,7 @@ static json_object * json_parse_object(const char * s, char ** endptr) {
         char * key_start = strchr(ptr, '"') + 1;
         char * val_start;
         json_string * key_str = json_parse_string(key_start, &val_start);
-        any key;
-        any_set_object(&key, string_get_raw(key_str->str), key_str->str->len);
+        any key = ANY_POINTER(key_str->str);
         free(key_str);
 
         while (*val_start == ':' || isspace(*val_start)) {
@@ -180,7 +182,7 @@ void json_free(json_base * json) {
         hash_table_iter_init(((json_object*)json)->table, &iter);
         while (hash_table_iter_has(&iter)) {
             hash_node * n = hash_table_iter_next(&iter);
-            any_clear_object(&n->key);
+            string_free(any_get_pointer(&n->key));
             json_base * val = any_get_pointer(&n->value);
             if (val) json_free(val);
         }
@@ -197,18 +199,15 @@ void json_free(json_base * json) {
     }
     else if (json->type == TYPE_JSON_STRING) {
         string_free(((json_string*)json)->str);
-        free(json);
     }
-    else {
-        free(json);
-    }
+    free(json);
 }
 
 json_base * json_object_get(const json_object * object, const char * key) {
-    any _key;
-    any_set_object(&_key, key, strlen(key));
+    string * keystr = string_new(key);
+    any _key = ANY_POINTER(keystr);
     any * val = hash_table_get_val(object->table, _key);
-    any_clear_object(&_key);
+    string_free(keystr);
     return any_get_pointer(val);
 }
 
@@ -217,7 +216,7 @@ json_base * json_array_get(const json_array * array, size_t idx) {
     return val;
 }
 
-void json_write(const json_base * json, string * str) {
+void json_write(const json_base * json, string ** str) {
     if (json == NULL) {
         string_append(str, "null");
     }
@@ -252,7 +251,7 @@ void json_write(const json_base * json, string * str) {
             hash_node * n = hash_table_iter_next(&iter);
             // write key
             string_append(str, "\"");
-            string_append(str, any_get_ref(&n->key));
+            string_concat(str, any_get_pointer(&n->key));
             string_append(str, "\":");
             // write value
             json_write(any_get_pointer(&n->value), str);
